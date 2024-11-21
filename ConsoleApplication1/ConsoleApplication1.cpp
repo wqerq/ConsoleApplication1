@@ -1,122 +1,84 @@
-﻿#include <locale.h>
-#include <time.h>
-#include <vector>
-#include <deque>
-#include <list>
-#include <algorithm>
+﻿#define _USE_MATH_DEFINES //Simps_Tst.cpp
+#include "Concurrent_Simps.h"
 #include <ppl.h>
 #include <iostream>
-#include <cmath> 
-#define NNN 1200
+#include <cmath>
+#include <time.h>
+#include <locale.h>
+using namespace concurrency;
 
-double TaskOne(int x) {
-    double ans = 0;
-    int end = std::max(20, 20 * std::abs(x));
-    for (int k = 1; k <= end; k++) {
-        for (int j = 1; j <= end; j++) {
-
-            double denominator = x * x + k * k  + j * j;
-            if (denominator != 0) {
-                ans += ((x*x) / denominator) *  cos((k+j) * x);
-            }
-        }
-    }
-    return ans;
-}
-
-double My_Task(double x) {
-    return TaskOne(static_cast<int>(x)); // Приведение к int, если нужно
-}
-
-
-int main()
+double Simps(double a, double b, int N, Double_Func_Double Func)
 {
-    setlocale(LC_ALL, ".ACP");
-    double V1[NNN];
-    double Time = clock();
-    std::cout << "Сравнение последовательной версии и версии на основе concurrency::parallel_for:\n";
+	double h = (b - a) / (2 * N);
+	double S1 = 0, S2 = 0;
+	for (int k = 1; k < N; k++) {
+		double Tmp = a + (2 * k - 1) * h; S1 += Func(Tmp);  S2 += Func(Tmp + h);
+	}
+	S1 += Func(b - h);
+	return h * (Func(a) + Func(b) + 4.0 * S1 + 2.0 * S2) / 3.0;
+}
 
-    for (int k = 0; k < NNN; k++) {
-        V1[k] = My_Task(100 * cos(k));
-    }
-
-
-    // сравнение времени    вычисления сумм
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время выполнения последовательной версии: " << Time << " сек." << std::endl;
-
-    Time = clock();
-    Concurrency::parallel_for(0, NNN, [&V1](size_t k) { V1[k] = My_Task(100 * cos(k)); });
-
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время выполнения параллельной версии: " << Time << " сек." << std::endl;
-
-
-
-    // сравнение эффективности для vector
-    std::vector<double> V(NNN); // Создаём вектор
-    for (int k = 0; k < NNN; k++)
-        V[k] = 100 * cos(k);
-    std::vector<double> VP(V); // Конструируем копию
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для вектора:\n";
-
-    Time = clock();
-    std::for_each(V.begin(), V.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время посл. обр: " << Time << " сек." << std::endl;
-    Time = clock();
-    concurrency::parallel_for_each(VP.begin(), VP.end(), [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время парал. обр.: " << Time << " сек." << std::endl;
-
-    // сравнение эффективности для deque
-    std::deque<double> Dq;
-    for (int k = 0; k < NNN; k++)
-        Dq.push_back(100 * cos(k));
-    std::deque<double> DqP(Dq);
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для дека:\n";
-
-    Time = clock();
-    std::for_each(Dq.begin(), Dq.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время посл. обр: " << Time << " сек." << std::endl;
-    Time = clock();
-    concurrency::parallel_for_each(DqP.begin(), DqP.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время парал. обр.: " << Time << " сек." << std::endl;
-
-    // сравнение эффективности для list
-    std::list<double> Lst;
-    for (int k = 0; k < NNN; k++)
-        Lst.push_back(100 * cos(k));
-    std::list<double> LstP(Lst);
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для списка:\n";
-
-    Time = clock();
-    std::for_each(Lst.begin(), Lst.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время посл. обр: " << Time << " сек." << std::endl;
-    Time = clock();
-    concurrency::parallel_for_each(LstP.begin(), LstP.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время парал. обр.: " << Time << " сек." << std::endl;
+double Concurrent_Simps(double a, double b, int N, Double_Func_Double Func)
+{
+	double h = (b - a) / (2 * N);
+	combinable<double> CS1([]() {return 0.0; }), CS2([]() {return 0.0; });
+	parallel_for(1, N, [a, h, Func, &CS1, &CS2](int k)
+		{double Tmp = a + (2 * k - 1) * h;
+	CS1.local() += Func(Tmp); CS2.local() += Func(Tmp + h); });
+	double S1 = CS1.combine([](double x, double y) {return x + y; });
+	double S2 = CS2.combine([](double x, double y) {return x + y; });
+	S1 += Func(b - h);
+	return h * (Func(a) + Func(b) + 4.0 * S1 + 2.0 * S2) / 3.0;
+}
 
 
-    return 0;
+using namespace std;
+
+class My_Class {
+private:
+	double y;
+	const int NNN = 200000; //Число разбиений отрезка интегрирования
+	const double _Inf = 5000.0; //Фактический верхний предел интегрирования
+public:
+	My_Class(double _y = 0.0) { y = _y; }
+	double Sub_Int_Func(double x)
+	{
+		double Tmp = 15 * log(10.0) + log(abs(x)) - sqrt(x);
+		int N = Tmp > 0 ? ceil(Tmp * Tmp + 1) : 1;
+		double P = exp(-abs(x));
+		double Tmp2 = y * y + x * x;
+		for (int k = 0; k <= N; k++)
+			P *= cos(x / (Tmp2 + exp(sqrt((double)k))));
+		return P;
+	}
+
+	double Quad()
+	{
+		return MethodCall::Simpson(0.0, _Inf, NNN, [this](double x) {return Sub_Int_Func(x); });
+	}
+
+	double Concurrent_Quad()
+	{
+		return MethodCall::Concurrent_Simpson(0.0, _Inf, NNN, [this](double x) {return Sub_Int_Func(x); });
+	}
+
+};
+
+
+int main(void)
+{
+	setlocale(LC_ALL, ".ACP");
+	double y;
+	cout << "y="; cin >> y;
+
+	My_Class TObj(y);
+	double Tms = clock();
+	double F = TObj.Quad();
+	Tms = (clock() - Tms) / CLOCKS_PER_SEC;
+	cout.precision(8);
+	cout << "F=" << F << endl << "Время=" << Tms << " с" << endl;
+	Tms = clock();
+	F = TObj.Concurrent_Quad();
+	Tms = (clock() - Tms) / CLOCKS_PER_SEC;
+	cout << "F=" << F << endl << "Время=" << Tms << " с" << endl;
 }
