@@ -29,43 +29,17 @@ double My_Task(double x) {
 }
 
 
-int main()
+int main(int argc, char* argv[])
 {
     setlocale(LC_ALL, ".ACP");
-    double V1[NNN];
-    double Time = clock();
-    std::cout << "Сравнение последовательной версии и версии на основе concurrency::parallel_for:\n";
-
-    for (int k = 0; k < NNN; k++) {
-        V1[k] = My_Task(100 * cos(k));
-    }
-
-
-    // сравнение времени    вычисления сумм
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время выполнения последовательной версии: " << Time << " сек." << std::endl;
-
-    Time = clock();
-    Concurrency::parallel_for(0, NNN, [&V1](size_t k) { V1[k] = My_Task(100 * cos(k)); });
-
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время выполнения параллельной версии: " << Time << " сек." << std::endl;
-
-
-
-    // сравнение эффективности для vector
-    std::vector<double> V(NNN); // Создаём вектор
+    //Обработка векторов
+    std::cout << "Сравнение std::transform и concurrency::parallel_transform для векторов:" << std::endl;
+    std::vector<double> V(NNN);
     for (int k = 0; k < NNN; k++)
         V[k] = 100 * cos(k);
-    std::vector<double> VP(V); // Конструируем копию
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для вектора:\n";
-
-    Time = clock();
-    std::for_each(V.begin(), V.end(),
-        [](double& x) {x = My_Task(x); });
+    std::vector<double> VP(V);//Конструируем копию
+    double Time = clock();
+    std::for_each(V.begin(), V.end(), [](double& x) {x = My_Task(x); });
     Time = (clock() - Time) / CLOCKS_PER_SEC;
     std::cout << "Подзадачи завершены" << std::endl
         << "- Время посл. обр: " << Time << " сек." << std::endl;
@@ -75,48 +49,37 @@ int main()
     std::cout << "Подзадачи завершены" << std::endl
         << "- Время парал. обр.: " << Time << " сек." << std::endl;
 
-    // сравнение эффективности для deque
+    //Обработка деков
+    std::cout << "\nСравнение std::transform и concurrency::parallel_transform для деков:" << std::endl;
     std::deque<double> Dq;
     for (int k = 0; k < NNN; k++)
         Dq.push_back(100 * cos(k));
     std::deque<double> DqP(Dq);
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для дека:\n";
-
     Time = clock();
-    std::for_each(Dq.begin(), Dq.end(),
-        [](double& x) {x = My_Task(x); });
+    std::for_each(Dq.begin(), Dq.end(), [](double& x) {x = My_Task(x); });
     Time = (clock() - Time) / CLOCKS_PER_SEC;
     std::cout << "Подзадачи завершены" << std::endl
         << "- Время посл. обр: " << Time << " сек." << std::endl;
     Time = clock();
-    concurrency::parallel_for_each(DqP.begin(), DqP.end(),
-        [](double& x) {x = My_Task(x); });
+    concurrency::parallel_for_each(DqP.begin(), DqP.end(), [](double& x) {x = My_Task(x); });
     Time = (clock() - Time) / CLOCKS_PER_SEC;
     std::cout << "Подзадачи завершены" << std::endl
         << "- Время парал. обр.: " << Time << " сек." << std::endl;
 
-    // сравнение эффективности для list
+    //Обработка списков
+    std::cout << "\nСравнение std::transform и concurrency::parallel_transform для списков:" << std::endl;
     std::list<double> Lst;
     for (int k = 0; k < NNN; k++)
         Lst.push_back(100 * cos(k));
     std::list<double> LstP(Lst);
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для списка:\n";
-
     Time = clock();
-    std::for_each(Lst.begin(), Lst.end(),
-        [](double& x) {x = My_Task(x); });
+    std::for_each(Lst.begin(), Lst.end(), [](double& x) {x = My_Task(x); });
     Time = (clock() - Time) / CLOCKS_PER_SEC;
     std::cout << "Подзадачи завершены" << std::endl
         << "- Время посл. обр: " << Time << " сек." << std::endl;
     Time = clock();
-    concurrency::parallel_for_each(LstP.begin(), LstP.end(),
-        [](double& x) {x = My_Task(x); });
+    concurrency::parallel_for_each(LstP.begin(), LstP.end(), [](double& x) {x = My_Task(x); });
     Time = (clock() - Time) / CLOCKS_PER_SEC;
     std::cout << "Подзадачи завершены" << std::endl
         << "- Время парал. обр.: " << Time << " сек." << std::endl;
-
-
-    return 0;
 }
