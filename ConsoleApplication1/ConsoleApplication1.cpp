@@ -1,122 +1,66 @@
-﻿#include <locale.h>
+﻿#define _USE_MATH_DEFINES
+#include <locale.h>
 #include <time.h>
 #include <vector>
-#include <deque>
-#include <list>
-#include <algorithm>
 #include <ppl.h>
+#include <concurrent_vector.h>
 #include <iostream>
-#include <cmath> 
-#define NNN 1200
-
-double TaskOne(int x) {
-    double ans = 0;
-    int end = std::max(20, 20 * std::abs(x));
-    for (int k = 1; k <= end; k++) {
-        for (int j = 1; j <= end; j++) {
-
-            double denominator = x * x + k * k  + j * j;
-            if (denominator != 0) {
-                ans += ((x*x) / denominator) *  cos((k+j) * x);
-            }
-        }
-    }
-    return ans;
-}
-
-double My_Task(double x) {
-    return TaskOne(static_cast<int>(x)); // Приведение к int, если нужно
-}
+#include <cmath>
+#define N1 400 //Число узлов по каждому направлению
+#define N2 50
 
 
-int main()
+
+double Func(double x, double y)
 {
-    setlocale(LC_ALL, ".ACP");
-    double V1[NNN];
-    double Time = clock();
-    std::cout << "Сравнение последовательной версии и версии на основе concurrency::parallel_for:\n";
+	double Tmp = 0;
+	for (int k = 1; k <= N2; k++)
+		for (int j = 1; j <= N2; j++)
+			Tmp += sin(k * x) * cos(j * y) / ((1 + k + j) * sqrt(1 + pow(k, 4) + pow(j, 4)));
+	return Tmp;
+}
 
-    for (int k = 0; k < NNN; k++) {
-        V1[k] = My_Task(100 * cos(k));
-    }
+struct Point
+{
+	double x, y, f;
+	Point(double _x, double _y, double _f)
+	{
+		x = _x; y = _y; f = _f;
+	}
+};
 
-
-    // сравнение времени    вычисления сумм
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время выполнения последовательной версии: " << Time << " сек." << std::endl;
-
-    Time = clock();
-    Concurrency::parallel_for(0, NNN, [&V1](size_t k) { V1[k] = My_Task(100 * cos(k)); });
-
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время выполнения параллельной версии: " << Time << " сек." << std::endl;
-
-
-
-    // сравнение эффективности для vector
-    std::vector<double> V(NNN); // Создаём вектор
-    for (int k = 0; k < NNN; k++)
-        V[k] = 100 * cos(k);
-    std::vector<double> VP(V); // Конструируем копию
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для вектора:\n";
-
-    Time = clock();
-    std::for_each(V.begin(), V.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время посл. обр: " << Time << " сек." << std::endl;
-    Time = clock();
-    concurrency::parallel_for_each(VP.begin(), VP.end(), [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время парал. обр.: " << Time << " сек." << std::endl;
-
-    // сравнение эффективности для deque
-    std::deque<double> Dq;
-    for (int k = 0; k < NNN; k++)
-        Dq.push_back(100 * cos(k));
-    std::deque<double> DqP(Dq);
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для дека:\n";
-
-    Time = clock();
-    std::for_each(Dq.begin(), Dq.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время посл. обр: " << Time << " сек." << std::endl;
-    Time = clock();
-    concurrency::parallel_for_each(DqP.begin(), DqP.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время парал. обр.: " << Time << " сек." << std::endl;
-
-    // сравнение эффективности для list
-    std::list<double> Lst;
-    for (int k = 0; k < NNN; k++)
-        Lst.push_back(100 * cos(k));
-    std::list<double> LstP(Lst);
-
-    std::cout << "\nСравнение std::for_each и parallel_for_each для списка:\n";
-
-    Time = clock();
-    std::for_each(Lst.begin(), Lst.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время посл. обр: " << Time << " сек." << std::endl;
-    Time = clock();
-    concurrency::parallel_for_each(LstP.begin(), LstP.end(),
-        [](double& x) {x = My_Task(x); });
-    Time = (clock() - Time) / CLOCKS_PER_SEC;
-    std::cout << "Подзадачи завершены" << std::endl
-        << "- Время парал. обр.: " << Time << " сек." << std::endl;
-
-
-    return 0;
+int main(int argc, char* argv[])
+{
+	setlocale(LC_ALL, ".ACP");
+	std::vector<Point> Pts;
+	double h = 2.0 * M_PI / N1;
+	double Time = clock();
+	for (int k = 0; k < N1; k++)
+		for (int j = 0; j < N1; j++) {
+			double x = h * k;
+			double y = h * j;
+			double f = Func(x, y);
+			if (f >= 0)
+				Pts.push_back(Point(x, y, f));
+		}
+	Time = (clock() - Time) / CLOCKS_PER_SEC;
+	std::cout << "Вычисления завершены. Размер контейнера: " << Pts.size() << std::endl
+		<< "Время : " << Time << " сек." << std::endl;
+	Pts.clear();
+	concurrency::concurrent_vector<Point> CPts;
+	Time = clock();
+	concurrency::parallel_for(0, N1,
+		[&CPts, h](int k) {
+			for (int j = 0; j < N1; j++) {
+				double x = h * k;
+				double y = h * j;
+				double f = Func(x, y);
+				if (f >= 0)
+					CPts.push_back(Point(x, y, f));
+			}}
+	);
+	Time = (clock() - Time) / CLOCKS_PER_SEC;
+	std::cout << "Вычисления завершены. Размер контейнера: " << CPts.size() << std::endl
+		<< "Время : " << Time << " сек." << std::endl;
+	CPts.clear();
 }
